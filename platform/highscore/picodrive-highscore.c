@@ -28,8 +28,6 @@
 
 #define SIDE_BORDER 14
 
-// TODO bloodlines savestate https://github.com/irixxxx/picodrive/issues/182
-
 static PicoDriveCore *core;
 
 struct _PicoDriveCore
