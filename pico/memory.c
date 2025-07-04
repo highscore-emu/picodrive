@@ -1615,6 +1615,8 @@ void ym2612_unpack_timers(const void *buf, size_t size)
   Pico.t.ym2612_busy = cycles_68k_to_z80(busy);
   tac = (1024 - ym2612.OPN.ST.TA) << 16;
   tbc = (256  - ym2612.OPN.ST.TB) << 16;
+  Pico.t.timer_a_step = TIMER_A_TICK_ZCYCLES * (1024 - ym2612.OPN.ST.TA);
+  Pico.t.timer_b_step = TIMER_B_TICK_ZCYCLES * (256  - ym2612.OPN.ST.TB);
   if (ym2612.OPN.ST.mode & 1)
     Pico.t.timer_a_next_oflow = (1LL * (tac-tat) * TIMER_A_TICK_ZCYCLES)>>16;
   else
