@@ -162,6 +162,9 @@ find_bios (int *region, const char *cd_fname)
   }
 
   const char *path = core->cd_bios_paths[core->cd_bios_type];
+  if (!path)
+    return NULL;
+
   g_autoptr (GFile) file = g_file_new_for_path (path);
 
   if (!g_file_query_exists (file, NULL))
