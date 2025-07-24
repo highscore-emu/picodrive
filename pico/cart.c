@@ -519,7 +519,7 @@ size_t pm_read_audio(void *ptr, size_t bytes, pm_file *stream)
 {
   if (stream == NULL)
     return -1;
-#if !(CPU_IS_LE)
+#if !CPU_IS_LE
   else if (stream->type == PMT_UNCOMPRESSED)
   {
     // convert little endian audio samples from WAV file

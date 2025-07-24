@@ -912,6 +912,7 @@ void SekInterruptClearS68k(int irq);
 extern short cdda_out_buffer[2*1152];
 
 void cdda_start_play(int lba_base, int lba_offset, int lb_len);
+void cdda_stop_play(void);
 
 #define YM2612_NATIVE_RATE() (((Pico.m.pal?OSC_PAL:OSC_NTSC)/7 + 3*24) / (6*24))
 

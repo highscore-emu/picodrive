@@ -431,6 +431,10 @@ void cdda_start_play(int lba_base, int lba_offset, int lb_len)
 
     mp3_start_play(Pico_mcd->cdda_stream, pos1024);
     return;
+  } else if (Pico_mcd->cdda_type == CT_OGG) {
+    ogg_start_play(Pico_mcd->cdda_stream,
+                  lba_offset * 588 + Pico_mcd->m.cdda_lba_offset);
+    return;
   }
 
   // on restart after loading, consider offset of last played sample
@@ -441,6 +445,13 @@ void cdda_start_play(int lba_base, int lba_offset, int lb_len)
     // skip headers, assume it's 44kHz stereo uncompressed
     pm_seek(Pico_mcd->cdda_stream, 44, SEEK_CUR);
   }
+}
+
+void cdda_stop_play(void)
+{
+  if (Pico_mcd->cdda_type == CT_OGG)
+    ogg_stop_play();
+  Pico_mcd->cdda_stream = NULL;
 }
 
 
@@ -536,6 +547,8 @@ static int PsndRender(int offset, int length)
   {
     if (Pico_mcd->cdda_type == CT_MP3)
       mp3_update(buf32, length-offset, stereo);
+    else if (Pico_mcd->cdda_type == CT_OGG)
+      ogg_update(buf32, length-offset, stereo);
     else
       cdda_raw_update(buf32, length-offset, stereo);
   }

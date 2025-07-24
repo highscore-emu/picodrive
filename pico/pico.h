@@ -24,6 +24,10 @@ extern void lprintf(const char *fmt, ...);
 extern int  mp3_get_bitrate(void *f, int size);
 extern void mp3_start_play(void *f, int pos);
 extern void mp3_update(s32 *buffer, int length, int stereo);
+extern int ogg_get_length(void *f_);
+extern void ogg_start_play(void *f_, int sample_offset);
+extern void ogg_stop_play(void);
+extern void ogg_update(s32 *buffer, int length, int stereo);
 
 // this function should write-back d-cache and invalidate i-cache
 // on a mem region [start_addr, end_addr)
@@ -329,6 +333,7 @@ enum cd_track_type
   CT_CHD = CT_AUDIO | 2,
   CT_MP3 = CT_AUDIO | 3,
   CT_WAV = CT_AUDIO | 4,
+  CT_OGG = CT_AUDIO | 5,
 };
 
 typedef struct

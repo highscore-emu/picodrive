@@ -131,7 +131,7 @@ void bgr_to_uyvy_init(void)
 #if CPU_IS_LE
 		yuv_uyvy[i].vyu = (yuv_v[r-y + 32] << 16) | (yuv_y[y] << 8) | yuv_u[b-y + 32];
 #else
-		yuv_uyvy[i].vyu = (yuv_v[b-y + 32] << 16) | (yuv_y[y] << 8) | yuv_u[r-y + 32];
+		yuv_uyvy[i].vyu = (yuv_u[b-y + 32] << 16) | (yuv_y[y] << 8) | yuv_v[r-y + 32];
 #endif
 	}
 }
