@@ -14,6 +14,7 @@ picodrive_source = [
   '../common/mp3.c',
   '../common/mp3_dummy.c',
   '../common/mp3_sync.c',
+  '../common/ogg.c',
   '../../cpu/cz80/cz80.c',
   '../../cpu/drc/cmn.c',
   '../../cpu/fame/famec.c',
@@ -73,6 +74,7 @@ picodrive_source = [
 picodrive_deps = [
   dependency('highscore-1'),
   dependency('gio-2.0'),
+  dependency('vorbisfile'),
   dependency('zlib'),
   cc.find_library('m', required: false),
 ]
