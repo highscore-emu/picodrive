@@ -2391,7 +2391,7 @@ size_t YM2612PicoStateSave3(void *buf_, size_t size)
 	save_u8_(buf, &b, ym2612.OPN.ST.address);
 	save_u8_(buf, &b, ym2612.OPN.ST.status);
 	save_u8_(buf, &b, ym2612.OPN.ST.mode);
-	save_u8_(buf, &b, ym2612.OPN.ST.flags);
+	save_u8_(buf, &b, ym2612.OPN.ST.flags); // incorrect, comes from options
 	// (timers are saved in CHUNK_FM_TIMERS)
 	save_u8_(buf, &b, ym2612.OPN.ST.fn_h);
 	save_u8_(buf, &b, ym2612.OPN.SL3.fn_h);
@@ -2433,7 +2433,7 @@ void YM2612PicoStateLoad3(const void *buf_, size_t size)
 	ym2612.OPN.ST.address = load_u8_(buf, &b);
 	ym2612.OPN.ST.status  = load_u8_(buf, &b);
 	ym2612.OPN.ST.mode    = load_u8_(buf, &b);
-	ym2612.OPN.ST.flags   = load_u8_(buf, &b);
+	/*ym2612.OPN.ST.flags*/ load_u8_(buf, &b); // comes from UI options
 	ym2612.OPN.ST.fn_h    = load_u8_(buf, &b);
 	ym2612.OPN.SL3.fn_h   = load_u8_(buf, &b);
 	for (i = 0; i < 3; i++) {
