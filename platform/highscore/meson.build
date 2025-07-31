@@ -50,6 +50,7 @@ picodrive_source = [
   '../../pico/sound/resampler.c',
   '../../pico/sound/sn76496.c',
   '../../pico/sound/sound.c',
+  '../../pico/sound/vgm.c',
   '../../pico/sound/ym2413.c',
   '../../pico/sound/ym2612.c',
   '../../pico/cart.c',
