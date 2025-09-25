@@ -47,9 +47,6 @@ struct _PicoDriveCore
   guint8 *current_fb;
   short first_line_bgc;
 
-  char *cd_bios_paths[3];
-  HsMegaCdBios cd_bios_type;
-
   char *save_path;
   char *rom_path;
 };
@@ -144,22 +141,26 @@ end_line (guint num)
 static const char *
 find_bios (int *region, const char *cd_fname)
 {
+  HsMegaCdFirmware firmware_id;
+
   switch (*region) {
     case 1:
     case 2:
-      core->cd_bios_type = HS_MEGA_CD_BIOS_JP;
+      firmware_id = HS_MEGA_CD_FIRMWARE_JAPAN;
       break;
     case 4:
-      core->cd_bios_type = HS_MEGA_CD_BIOS_US;
+      firmware_id = HS_MEGA_CD_FIRMWARE_NORTH_AMERICA;
       break;
     case 8:
-      core->cd_bios_type = HS_MEGA_CD_BIOS_EU;
+      firmware_id = HS_MEGA_CD_FIRMWARE_EUROPE;
       break;
     default:
       g_assert_not_reached ();
   }
 
-  const char *path = core->cd_bios_paths[core->cd_bios_type];
+  hs_core_reset_used_firmware (HS_CORE (core));
+
+  const char *path = hs_core_query_firmware_path (HS_CORE (core), firmware_id);
   if (!path)
     return NULL;
 
@@ -267,7 +268,7 @@ load_game (PicoDriveCore *self, GError **error)
     g_set_error (error, HS_CORE_ERROR, HS_CORE_ERROR_UNSUPPORTED_GAME, "Invalid CD image");
     return FALSE;
   case PM_BAD_CD_NO_BIOS:
-    g_set_error (error, HS_CORE_ERROR, HS_CORE_ERROR_MISSING_BIOS, "Missing BIOS");
+    g_set_error (error, HS_CORE_ERROR, HS_CORE_ERROR_MISSING_FIRMWARE, "Missing BIOS");
     return FALSE;
   case PM_ERROR:
     g_set_error (error, HS_CORE_ERROR, HS_CORE_ERROR_INTERNAL, "Failed to load ROM");
@@ -514,9 +515,6 @@ picodrive_core_finalize (GObject *object)
   g_free (self->audio_buffer);
   g_free (self->video_buffer);
 
-  for (int i = 0; i < 3; i++)
-    g_free (self->cd_bios_paths[i]);
-
   G_OBJECT_CLASS (picodrive_core_parent_class)->finalize (object);
 
   core = NULL;
@@ -594,28 +592,8 @@ picodrive_mega_drive_32x_core_init (HsMegaDrive32XCoreInterface *iface)
 }
 
 static void
-picodrive_mega_cd_core_set_bios_path (HsMegaCdCore *core,
-                                      HsMegaCdBios  type,
-                                      const char   *path)
-{
-  PicoDriveCore *self = PICODRIVE_CORE (core);
-
-  g_set_str (&self->cd_bios_paths[type], path);
-}
-
-static HsMegaCdBios
-picodrive_mega_cd_core_get_used_bios (HsMegaCdCore *core)
-{
-  PicoDriveCore *self = PICODRIVE_CORE (core);
-
-  return self->cd_bios_type;
-}
-
-static void
 picodrive_mega_cd_core_init (HsMegaCdCoreInterface *iface)
 {
-  iface->set_bios_path = picodrive_mega_cd_core_set_bios_path;
-  iface->get_used_bios = picodrive_mega_cd_core_get_used_bios;
 }
 
 static void
