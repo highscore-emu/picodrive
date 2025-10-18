@@ -75,6 +75,7 @@ picodrive_source = [
 picodrive_deps = [
   dependency('highscore-1'),
   dependency('gio-2.0'),
+  dependency('libchdr'),
   dependency('vorbisfile'),
   dependency('zlib'),
   cc.find_library('m', required: false),
@@ -89,6 +90,7 @@ picodrive_c_args = [
   '-ffast-math',
   '-DEMU_F68K',
   '-D_USE_CZ80',
+  '-DUSE_LIBCHDR',
   '-DDRC_SH2',
   '-DNDEBUG',
   '-D__LIBRETRO__',
