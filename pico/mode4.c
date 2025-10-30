@@ -308,10 +308,10 @@ static void DrawDisplayM4(int scanline)
       // on GG render only the center 160 px, but mind hscroll
       DrawStripM4(nametab , (dx-8) | ((cells-11)<< 16),(tilex+5) | (ty  << 16));
     } else if (pv->reg[0] & 0x80) {
-      // vscroll disabled for rightmost 8 columns (e.g. Gauntlet)
-      int dx2 = dx + (cells-8)*8, tilex2 = tilex + (cells-8), ty2 = scanline&7;
-      DrawStripM4(nametab,   dx    | ((cells-8) << 16), tilex    | (ty  << 16));
-      DrawStripM4(nametab2,  dx2   |        (8  << 16), tilex2   | (ty2 << 17));
+      // vscroll disabled for rightmost 8 columns (e.g. Gauntlet, Line of Fire)
+      int dx2 = dx + (cells-7)*8, tilex2 = tilex + (cells-7), ty2 = scanline&7;
+      DrawStripM4(nametab,   dx    | ((cells-7) << 16), tilex    | (ty  << 16));
+      DrawStripM4(nametab2,  dx2   |        (7  << 16), tilex2   | (ty2 << 17));
     } else
       DrawStripM4(nametab ,  dx    | ( cells    << 16), tilex    | (ty  << 16));
   }

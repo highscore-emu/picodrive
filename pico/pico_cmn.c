@@ -314,6 +314,9 @@ static int PicoFrameHints(void)
   // === VBLANK last line ===
   pv->status &= ~(SR_VB | PVS_VB2);
   pv->status |= ((pv->reg[1] >> 3) ^ SR_VB) & SR_VB; // forced blanking
+#ifdef PICO_32X
+  p32x_end_blank();
+#endif
 
   // last scanline
   Pico.m.scanline = y++;
@@ -341,9 +344,6 @@ static int PicoFrameHints(void)
   pevt_log_m68k_o(EVT_NEXT_LINE);
 
   SyncCPUs(Pico.t.m68c_aim);
-#ifdef PICO_32X
-  p32x_end_blank();
-#endif
 
   // get samples from sound chips
   PsndGetSamples(y);

@@ -336,8 +336,8 @@ static void p32x_end_blank(void)
   if ((Pico32x.vdp_regs[0] & P32XV_Mx) != 0) // no forced blanking
     Pico32x.vdp_regs[0x0a/2] &= ~P32XV_PEN; // no palette access
   if (!(Pico32x.sh2_regs[0] & 0x80)) {
-    // NB must precede VInt per hw manual, min 4 SH-2 cycles to pass Mars Check
-    Pico32x.hint_counter = (int)(-1.5*0x10);
+    // Hint on 32X is taking place some 13 H40 px after HBLANK on MD
+    Pico32x.hint_counter = (13 * 16/7) << 4;
     p32x_schedule_hint(NULL, Pico.t.m68c_aim);
   }
 
@@ -352,10 +352,10 @@ void p32x_schedule_hint(SH2 *sh2, unsigned int m68k_cycles)
 
   if (!((Pico32x.sh2irq_mask[0] | Pico32x.sh2irq_mask[1]) & 4))
     return; // nobody cares
-  if (!(Pico32x.sh2_regs[0] & 0x80) && (Pico.video.status & PVS_VB2))
+  if ((Pico.video.status & PVS_VB2) && !(Pico32x.sh2_regs[0] & 0x80))
     return;
 
-  Pico32x.hint_counter += (Pico32x.sh2_regs[4 / 2] + 1) * (int)(488.5*0x10);
+  Pico32x.hint_counter += (Pico32x.sh2_regs[4 / 2] + 1) * (int)(488.5 * (1<<4));
   after = Pico32x.hint_counter >> 4;
   Pico32x.hint_counter &= 0xf;
   if (sh2 != NULL)
