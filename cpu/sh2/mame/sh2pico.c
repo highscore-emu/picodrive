@@ -147,23 +147,23 @@ int sh2_execute_interpreter(SH2 *sh2, int cycles)
 		sh2->delay = 0;
 		sh2->pc += 2;
 
-		switch (opcode & ( 15 << 12))
+		switch ((opcode >> 12) & 15)
 		{
-		case  0<<12: op0000(sh2, opcode); break;
-		case  1<<12: op0001(sh2, opcode); break;
-		case  2<<12: op0010(sh2, opcode); break;
-		case  3<<12: op0011(sh2, opcode); break;
-		case  4<<12: op0100(sh2, opcode); break;
-		case  5<<12: op0101(sh2, opcode); break;
-		case  6<<12: op0110(sh2, opcode); break;
-		case  7<<12: op0111(sh2, opcode); break;
-		case  8<<12: op1000(sh2, opcode); break;
-		case  9<<12: op1001(sh2, opcode); break;
-		case 10<<12: op1010(sh2, opcode); break;
-		case 11<<12: op1011(sh2, opcode); break;
-		case 12<<12: op1100(sh2, opcode); break;
-		case 13<<12: op1101(sh2, opcode); break;
-		case 14<<12: op1110(sh2, opcode); break;
+		case  0: op0000(sh2, opcode); break;
+		case  1: op0001(sh2, opcode); break;
+		case  2: op0010(sh2, opcode); break;
+		case  3: op0011(sh2, opcode); break;
+		case  4: op0100(sh2, opcode); break;
+		case  5: op0101(sh2, opcode); break;
+		case  6: op0110(sh2, opcode); break;
+		case  7: op0111(sh2, opcode); break;
+		case  8: op1000(sh2, opcode); break;
+		case  9: op1001(sh2, opcode); break;
+		case 10: op1010(sh2, opcode); break;
+		case 11: op1011(sh2, opcode); break;
+		case 12: op1100(sh2, opcode); break;
+		case 13: op1101(sh2, opcode); break;
+		case 14: op1110(sh2, opcode); break;
 		default: op1111(sh2, opcode); break;
 		}
 
@@ -248,23 +248,23 @@ int sh2_execute_interpreter(SH2 *sh2, int cycles)
 		sh2->delay = 0;
 		sh2->pc += 2;
 
-		switch (opcode & ( 15 << 12))
+		switch ((opcode >> 12) & 15)
 		{
-		case  0<<12: op0000(sh2, opcode); break;
-		case  1<<12: op0001(sh2, opcode); break;
-		case  2<<12: op0010(sh2, opcode); break;
-		case  3<<12: op0011(sh2, opcode); break;
-		case  4<<12: op0100(sh2, opcode); break;
-		case  5<<12: op0101(sh2, opcode); break;
-		case  6<<12: op0110(sh2, opcode); break;
-		case  7<<12: op0111(sh2, opcode); break;
-		case  8<<12: op1000(sh2, opcode); break;
-		case  9<<12: op1001(sh2, opcode); break;
-		case 10<<12: op1010(sh2, opcode); break;
-		case 11<<12: op1011(sh2, opcode); break;
-		case 12<<12: op1100(sh2, opcode); break;
-		case 13<<12: op1101(sh2, opcode); break;
-		case 14<<12: op1110(sh2, opcode); break;
+		case  0: op0000(sh2, opcode); break;
+		case  1: op0001(sh2, opcode); break;
+		case  2: op0010(sh2, opcode); break;
+		case  3: op0011(sh2, opcode); break;
+		case  4: op0100(sh2, opcode); break;
+		case  5: op0101(sh2, opcode); break;
+		case  6: op0110(sh2, opcode); break;
+		case  7: op0111(sh2, opcode); break;
+		case  8: op1000(sh2, opcode); break;
+		case  9: op1001(sh2, opcode); break;
+		case 10: op1010(sh2, opcode); break;
+		case 11: op1011(sh2, opcode); break;
+		case 12: op1100(sh2, opcode); break;
+		case 13: op1101(sh2, opcode); break;
+		case 14: op1110(sh2, opcode); break;
 		default: op1111(sh2, opcode); break;
 		}
 

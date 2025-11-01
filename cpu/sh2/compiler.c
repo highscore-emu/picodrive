@@ -3785,7 +3785,13 @@ static void REGPARM(2) *sh2_translate(SH2 *sh2, int tcache_id)
       goto end_op;
 
     case OP_SLEEP: // SLEEP      0000000000011011
-      printf("TODO sleep\n");
+      sr = rcache_get_reg(SHR_SR, RC_GR_RMW, NULL);
+      emith_sync_t(sr);
+      emith_cmp_r_imm(sr, 0);
+      EMITH_SJMP_START(DCOND_LT);
+      emith_clear_msb(sr, sr, 20);
+      EMITH_SJMP_END(DCOND_LT);
+      cycles = 0;
       goto end_op;
 
     case OP_RTE: // RTE        0000000000101011
