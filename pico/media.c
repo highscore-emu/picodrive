@@ -290,7 +290,10 @@ enum media_type_e PicoLoadMedia(const char *filename,
     cd_img_type = PicoCdCheck(filename, &cd_region);
     if ((int)cd_img_type >= 0 && cd_img_type != CT_UNKNOWN)
     {
-      // valid CD image, ask frontend for BIOS.
+      // valid CD image, invalidate potential cartridge data
+      rom = NULL;
+
+      // ask frontend for BIOS
       rom_fname = NULL;
       if (get_bios_filename != NULL)
         rom_fname = get_bios_filename(&cd_region, filename);
