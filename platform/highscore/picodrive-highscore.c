@@ -49,6 +49,8 @@ struct _PicoDriveCore
 
   char *save_path;
   char *rom_path;
+
+  int colorburst_phase;
 };
 
 static void picodrive_mega_drive_core_init (HsMegaDriveCoreInterface *iface);
@@ -362,6 +364,13 @@ picodrive_core_run_frame (HsCore *core)
     fill_line (bgc, 0, i);
 
   hs_software_context_release_framebuffer (self->context);
+
+  hs_software_context_set_colorburst_phase (self->context, self->colorburst_phase);
+
+  if (Pico.m.pal)
+    self->colorburst_phase ^= 1;
+  else
+    self->colorburst_phase = 0;
 
   // interlaced - Pico.est.rendstatus & PDRAW_INTERLACE
   // odd - Pico.video.status & SR_ODD
