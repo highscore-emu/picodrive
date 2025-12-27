@@ -2,7 +2,7 @@ project('picodrive-highscore', 'c',
   version : '2.0.5',
 )
 
-commit = run_command('git', 'describe', '--always', '--dirty', '--match', '').stdout().strip()
+commit = run_command('git', 'describe', '--always', '--dirty', '--match', '', check: false).stdout().strip()
 version = meson.project_version()
 
 cc = meson.get_compiler('c')
