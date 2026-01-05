@@ -2,10 +2,12 @@
  */
 
 #include <stddef.h>
+#ifndef __HIGHSCORE__
 #include "emu2413/emu2413.h"
 
 // the one instance that can be in a Mark III
 extern OPLL *opll;
+#endif
 
 void YM2413_regWrite(unsigned data);
 void YM2413_dataWrite(unsigned data);

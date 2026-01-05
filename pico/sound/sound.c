@@ -35,16 +35,20 @@ static int (*PsndFMUpdate)(s32 *buffer, int length, int stereo, int is_buf_empty
 
 PICO_INTERNAL void PsndInit(void)
 {
+#ifndef __HIGHSCORE__
   opll = OPLL_new(OSC_NTSC/15, OSC_NTSC/15/72);
   OPLL_setChipType(opll,0);
   OPLL_reset(opll);
+#endif
 }
 
 PICO_INTERNAL void PsndExit(void)
 {
+#ifndef __HIGHSCORE__
   if (opll)
     OPLL_delete(opll);
   opll = NULL;
+#endif
 
   resampler_free(ym2612_resampler); ym2612_resampler = NULL;
   resampler_free(ym2413_resampler); ym2413_resampler = NULL;
@@ -76,11 +80,13 @@ static int YM2612UpdateFIR(s32 *buffer, int length, int stereo, int is_buf_empty
 // resample SMS FM from its native 49716Hz/49262Hz with polyphase FIR filter
 static void YM2413Update(s32 *buffer, int length, int stereo)
 {
+#ifndef __HIGHSCORE__
   while (length-- > 0) {
     int16_t getdata = OPLL_calc(opll) * 3;
     *buffer++ = getdata;
     buffer += stereo; // only left for stereo, to be mixed to right later
   }
+#endif
 }
 
 static int YM2413UpdateFIR(s32 *buffer, int length, int stereo, int is_buf_empty)
@@ -131,8 +137,10 @@ void PsndRerate(int preserve_state)
   void *state = NULL;
   int target_fps = Pico.m.pal ? 50 : 60;
   int target_lines = Pico.m.pal ? 313 : 262;
+#ifndef __HIGHSCORE__
   int sms_clock = Pico.m.pal ? OSC_PAL/15 : OSC_NTSC/15;
   int ym2413_rate = (sms_clock + 36) / 72;
+#endif
   int ym2612_clock = Pico.m.pal ? OSC_PAL/7 : OSC_NTSC/7;
   int ym2612_rate = YM2612_NATIVE_RATE();
   int ym2612_init = !preserve_state;
@@ -151,6 +159,7 @@ void PsndRerate(int preserve_state)
       state_size = YM2612PicoStateSave3(state, state_size);
   }
 
+#ifndef __HIGHSCORE__
   if (opll && opll->rate != ym2413_rate) {
     OPLL_setRate(opll, ym2413_rate);
     if (!preserve_state)
@@ -158,6 +167,7 @@ void PsndRerate(int preserve_state)
     resampler_free(ym2413_resampler);
     ym2413_resampler = YMFM_setup_FIR(ym2413_rate, PicoIn.sndRate, 0);
   }
+#endif
   if (PicoIn.AHW & PAHW_SMS) {
     PsndFMUpdate = YM2413UpdateFIR;
   } else if ((PicoIn.opt & POPT_EN_FM_FILTER) && ym2612_rate != PicoIn.sndRate) {

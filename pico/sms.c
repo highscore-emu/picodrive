@@ -15,7 +15,9 @@
 #include "pico_int.h"
 #include "memory.h"
 #include "sound/sn76496.h"
+#ifndef __HIGHSCORE__
 #include "sound/emu2413/emu2413.h"
+#endif
 
 #include <platform/common/input_pico.h> // for keyboard handling
 

@@ -96,6 +96,7 @@ picodrive_c_args = [
   '-DDRC_SH2',
   '-DNDEBUG',
   '-D__LIBRETRO__',
+  '-D__HIGHSCORE__',
 ]
 
 picodrive_include_dirs = [

@@ -1,11 +1,17 @@
 /* PicoDrive's wrapper for emu2413
  */
 
+#ifdef __HIGHSCORE__
+#include "ym2413.h"
+void YM2413_regWrite(unsigned data){}
+void YM2413_dataWrite(unsigned data){}
+size_t ym2413_pack_state(void *buf_, size_t size){ return 0; }
+void ym2413_unpack_state(const void *buf_, size_t size){}
+#else
 #include "emu2413/emu2413.c"
 
 // the one instance that can be in a Mark III
 OPLL *opll = NULL;
-
 
 void YM2413_regWrite(unsigned data){
   OPLL_writeIO(opll,0,data);
@@ -122,3 +128,4 @@ void ym2413_unpack_state(const void *buf_, size_t size)
 	OPLL_forceRefresh(opll);
 }
 
+#endif
