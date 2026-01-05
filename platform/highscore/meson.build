@@ -87,6 +87,8 @@ picodrive_c_args = [
   '-fno-common',
   '-finline-limit=42',
   '-fno-unroll-loops',
+  '-Wno-stringop-overflow',
+  '-Wno-unused-result',
   '-ffast-math',
   '-DEMU_F68K',
   '-D_USE_CZ80',
