@@ -132,6 +132,6 @@ configure_file(
 )
 
 install_data(
-  '../../COPYING',
+  '..' / '..' / 'COPYING',
   install_dir: core_dir
 )
