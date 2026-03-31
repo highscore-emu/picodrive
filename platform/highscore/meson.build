@@ -133,6 +133,5 @@ configure_file(
 
 install_data(
   '../../COPYING',
-  install_dir: core_dir,
-  rename: 'picodrive.license'
+  install_dir: core_dir
 )
