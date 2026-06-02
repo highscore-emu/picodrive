@@ -2564,8 +2564,10 @@ static void rcache_create(void)
     }
   }
 
+#if DRC_DEBUG
   printf("DRC registers created, %ld host regs (%d REG, %d STATIC, 1 CTX)\n",
     CACHE_REGS+1L, count_bits(rcache_vregs_reg),count_bits(rcache_regs_static));
+#endif
 }
 
 static void rcache_init(void)
