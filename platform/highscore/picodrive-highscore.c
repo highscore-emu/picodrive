@@ -315,10 +315,14 @@ picodrive_core_load_rom (HsCore      *core,
 static gboolean
 picodrive_core_reset (HsCore *core, gboolean hard, GError **error)
 {
+  PicoDriveCore *self = PICODRIVE_CORE (core);
+
   if (PicoReset ()) {
     g_set_error (error, HS_CORE_ERROR, HS_CORE_ERROR_INTERNAL, "Failed to reset");
     return FALSE;
   }
+
+  self->colorburst_phase = 0;
 
   return TRUE;
 }
@@ -471,6 +475,7 @@ picodrive_core_load_state (HsCore          *core,
                            const char      *path,
                            HsStateCallback  callback)
 {
+  PicoDriveCore *self = PICODRIVE_CORE (core);
   GError *error = NULL;
 
   if (PicoState (path, FALSE) != 0) {
@@ -478,6 +483,8 @@ picodrive_core_load_state (HsCore          *core,
     callback (core, &error);
     return;
   }
+
+  self->colorburst_phase = hs_core_get_colorburst_phase (core);
 
   callback (core, NULL);
 }
