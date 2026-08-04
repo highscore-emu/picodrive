@@ -49,8 +49,6 @@ struct _PicoDriveCore
 
   char *save_path;
   char *rom_path;
-
-  int colorburst_phase;
 };
 
 static void picodrive_mega_drive_core_init (HsMegaDriveCoreInterface *iface);
@@ -322,8 +320,6 @@ picodrive_core_reset (HsCore *core, gboolean hard, GError **error)
     return FALSE;
   }
 
-  self->colorburst_phase = 0;
-
   return TRUE;
 }
 
@@ -369,12 +365,10 @@ picodrive_core_run_frame (HsCore *core)
 
   hs_software_context_release_framebuffer (self->context);
 
-  if (Pico.m.pal) {
-    hs_software_context_set_colorburst (self->context, self->col_count * 3.0 / 640.0, 0.5, self->colorburst_phase / 2.0);
-    self->colorburst_phase ^= 1;
-  } else {
+  if (Pico.m.pal)
+    hs_software_context_set_colorburst (self->context, self->col_count * 3.0 / 640.0, 0.5, 0.0);
+  else
     hs_software_context_set_colorburst (self->context, self->col_count * 3.0 / 512.0, 0.0, 0.25);
-  }
 
   // interlaced - Pico.est.rendstatus & PDRAW_INTERLACE
   // odd - Pico.video.status & SR_ODD
@@ -483,8 +477,6 @@ picodrive_core_load_state (HsCore          *core,
     callback (core, &error);
     return;
   }
-
-  self->colorburst_phase = (hs_core_get_colorburst_offset (core) > 0.3) ? 1 : 0;
 
   callback (core, NULL);
 }
