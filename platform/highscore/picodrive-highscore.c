@@ -313,8 +313,6 @@ picodrive_core_load_rom (HsCore      *core,
 static gboolean
 picodrive_core_reset (HsCore *core, gboolean hard, GError **error)
 {
-  PicoDriveCore *self = PICODRIVE_CORE (core);
-
   if (PicoReset ()) {
     g_set_error (error, HS_CORE_ERROR, HS_CORE_ERROR_INTERNAL, "Failed to reset");
     return FALSE;
@@ -469,7 +467,6 @@ picodrive_core_load_state (HsCore          *core,
                            const char      *path,
                            HsStateCallback  callback)
 {
-  PicoDriveCore *self = PICODRIVE_CORE (core);
   GError *error = NULL;
 
   if (PicoState (path, FALSE) != 0) {
