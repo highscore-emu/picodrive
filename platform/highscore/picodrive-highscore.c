@@ -21,6 +21,8 @@
 
 #include <platform/common/input_pico.h>
 
+#include "math.h"
+
 #define VOUT_MAX_WIDTH 320
 #define VOUT_MAX_HEIGHT 240
 
@@ -49,6 +51,8 @@ struct _PicoDriveCore
 
   char *save_path;
   char *rom_path;
+
+  float colorburst_phase;
 };
 
 static void picodrive_mega_drive_core_init (HsMegaDriveCoreInterface *iface);
@@ -313,10 +317,15 @@ picodrive_core_load_rom (HsCore      *core,
 static gboolean
 picodrive_core_reset (HsCore *core, gboolean hard, GError **error)
 {
+  PicoDriveCore *self = PICODRIVE_CORE (core);
+
   if (PicoReset ()) {
     g_set_error (error, HS_CORE_ERROR, HS_CORE_ERROR_INTERNAL, "Failed to reset");
     return FALSE;
   }
+
+  if (hard)
+    self->colorburst_phase = 0;
 
   return TRUE;
 }
@@ -363,10 +372,22 @@ picodrive_core_run_frame (HsCore *core)
 
   hs_software_context_release_framebuffer (self->context);
 
-  if (Pico.m.pal)
-    hs_software_context_set_colorburst (self->context, self->col_count * 3.0 / 640.0, 0.5, 0.0);
-  else
-    hs_software_context_set_colorburst (self->context, self->col_count * 3.0 / 512.0, 0.0, 0.25);
+  HsPlatform platform = hs_core_get_platform (core);
+
+  if (platform == HS_PLATFORM_MEGA_DRIVE_32X ||
+      platform == HS_PLATFORM_MEGA_CD_32X) {
+    if (Pico.m.pal)
+      hs_software_context_set_colorburst (self->context, self->col_count * 3.0 / 640.0, 0.0, self->colorburst_phase);
+    else
+      hs_software_context_set_colorburst (self->context, self->col_count * 3.0 / 512.0, 0.0, self->colorburst_phase);
+
+    self->colorburst_phase = fmod (self->colorburst_phase + 0.2, 1.0);
+  } else {
+    if (Pico.m.pal)
+      hs_software_context_set_colorburst (self->context, self->col_count * 3.0 / 640.0, 0.0, 0.0);
+    else
+      hs_software_context_set_colorburst (self->context, self->col_count * 3.0 / 512.0, 0.0, 0.25);
+  }
 
   // interlaced - Pico.est.rendstatus & PDRAW_INTERLACE
   // odd - Pico.video.status & SR_ODD
@@ -467,6 +488,7 @@ picodrive_core_load_state (HsCore          *core,
                            const char      *path,
                            HsStateCallback  callback)
 {
+  PicoDriveCore *self = PICODRIVE_CORE (core);
   GError *error = NULL;
 
   if (PicoState (path, FALSE) != 0) {
@@ -474,6 +496,8 @@ picodrive_core_load_state (HsCore          *core,
     callback (core, &error);
     return;
   }
+
+  self->colorburst_phase = hs_core_get_colorburst_offset (core);
 
   callback (core, NULL);
 }
