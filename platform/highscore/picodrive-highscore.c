@@ -381,7 +381,8 @@ picodrive_core_run_frame (HsCore *core)
     else
       hs_software_context_set_colorburst (self->context, self->col_count * 3.0 / 512.0, 0.0, self->colorburst_phase);
 
-    self->colorburst_phase = fmod (self->colorburst_phase + 0.2, 1.0);
+    self->colorburst_phase = 0.0;
+//    self->colorburst_phase = fmod (self->colorburst_phase + 0.2, 1.0);
   } else {
     if (Pico.m.pal)
       hs_software_context_set_colorburst (self->context, self->col_count * 3.0 / 640.0, 0.0, 0.0);
