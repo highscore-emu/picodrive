@@ -8,3 +8,8 @@ Copyright=Copyright 2004 Dave;Copyright 2006-2010 notaz;Copyright 2019-2024 irix
 Website=https://notaz.gp2x.de/pico.php
 LicensePath=COPYING
 Platforms=MegaDrive32X;MegaCD32X;
+
+[Firmware:MegaCD]
+europe=required
+japan=required
+north-america=required
