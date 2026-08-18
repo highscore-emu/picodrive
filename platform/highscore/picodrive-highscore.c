@@ -387,7 +387,7 @@ picodrive_core_run_frame (HsCore *core)
     if (Pico.m.pal)
       hs_software_context_set_colorburst (self->context, self->col_count * 3.0 / 640.0, 0.0, 0.0);
     else
-      hs_software_context_set_colorburst (self->context, self->col_count * 3.0 / 512.0, 0.0, 0.25);
+      hs_software_context_set_colorburst (self->context, self->col_count * 3.0 / 512.0, 0.0, 0.5);
   }
 
   // interlaced - Pico.est.rendstatus & PDRAW_INTERLACE
