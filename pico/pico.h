@@ -122,6 +122,8 @@ typedef struct PicoInterface
 	short mouse[4];                // x,y mouse coordinates
 	short mouseInt[4];             // internal copy
 	short gunx, guny;              // light gun offsets
+	short stkCenter;               // stick centering axes (1=x, 2=y)
+	short stkTime, stkRate;        // stick centering timeout, rate
 
 	unsigned short quirks;         // game-specific quirks: PQUIRK_*
 	unsigned short overclockM68k;  // overclock the emulated 68k, in %
@@ -371,6 +373,7 @@ enum input_device {
   PICO_INPUT_NOTHING,
   PICO_INPUT_PAD_3BTN,
   PICO_INPUT_PAD_6BTN,
+  PICO_INPUT_XE_1AP,
   PICO_INPUT_MOUSE,
   PICO_INPUT_LIGHT_GUN,
   PICO_INPUT_JUSTIFIER,

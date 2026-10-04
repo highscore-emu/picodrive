@@ -680,6 +680,10 @@ void emu_prep_defconfig(void)
 	defaultConfig.gamma = 100;
 	defaultConfig.scaling = 0;
 	defaultConfig.turbo_rate = 15;
+	defaultConfig.mouse_speed = 4;
+	defaultConfig.mouse_wheel = 2;
+	defaultConfig.stick_timeout = 3;
+	defaultConfig.stick_rate = 3;
 	defaultConfig.msh2_khz = PICO_MSH2_HZ / 1000;
 	defaultConfig.ssh2_khz = PICO_SSH2_HZ / 1000;
 	defaultConfig.max_skip = 4;
@@ -746,6 +750,9 @@ int emu_read_config(const char *rom_fname, int no_defaults)
 	PicoIn.overclockM68k = currentConfig.overclock_68k;
 	PicoIn.gunx = currentConfig.gunx;
 	PicoIn.guny = currentConfig.guny;
+	PicoIn.stkTime = currentConfig.stick_timeout;
+	PicoIn.stkRate = currentConfig.stick_rate;
+	PicoIn.stkCenter = currentConfig.stick_centering;
 
 	// some sanity checks
 	if (currentConfig.volume < 0 || currentConfig.volume > 99)
@@ -1243,17 +1250,17 @@ static void do_turbo(unsigned short *pad, int acts)
 	static unsigned char turbo_cnt[3] = { 0, 0, 0 };
 	int inc = currentConfig.turbo_rate * 2;
 
-	if (acts & 0x1000) {
+	if (acts & 0x10000) {
 		turbo_cnt[0] += inc;
 		if (turbo_cnt[0] >= 60)
 			turbo_pad ^= 0x10, turbo_cnt[0] = 0;
 	}
-	if (acts & 0x2000) {
+	if (acts & 0x20000) {
 		turbo_cnt[1] += inc;
 		if (turbo_cnt[1] >= 60)
 			turbo_pad ^= 0x20, turbo_cnt[1] = 0;
 	}
-	if (acts & 0x4000) {
+	if (acts & 0x40000) {
 		turbo_cnt[2] += inc;
 		if (turbo_cnt[2] >= 60)
 			turbo_pad ^= 0x40, turbo_cnt[2] = 0;
@@ -1369,7 +1376,8 @@ static int map_pointer_buttons(int msbtns, int device)
 		if (msbtns & 1) buttons |= 1<<GBTN_B;	// as Sega Mouse
 		if (msbtns & 2) buttons |= 1<<GBTN_START;
 		if (msbtns & 4) buttons |= 1<<GBTN_C;
-	} else if (device == PICO_INPUT_LIGHT_GUN || device == PICO_INPUT_JUSTIFIER) {
+	} else if (device == PICO_INPUT_LIGHT_GUN || device == PICO_INPUT_JUSTIFIER ||
+		   device == PICO_INPUT_XE_1AP) {
 		if (msbtns & 1) buttons |= 1<<GBTN_A;	// as Sega Menacer
 		if (msbtns & 2) buttons |= 1<<GBTN_B;
 		if (msbtns & 4) buttons |= 1<<GBTN_START;
@@ -1405,15 +1413,27 @@ void emu_update_input(void)
 			int xrel, yrel;
 			in_update_pointer(0, 2, &xrel);
 			in_update_pointer(0, 3, &yrel);
-			mouse_x += xrel, mouse_y += yrel;
+			mouse_x += xrel;
+			mouse_y += yrel;
 		}
 		// scale mouse coordinates from -1024..1024 to 0..screen_w/h
-		PicoIn.mouse[0] = (mouse_x+1024) * 320/2048;
-		PicoIn.mouse[1] = (mouse_y+1024) * 240/2048;
+		PicoIn.mouse[0] = (mouse_x+1024) * 320/2048 * currentConfig.mouse_speed / 4;
+		PicoIn.mouse[1] = (mouse_y+1024) * 240/2048 * currentConfig.mouse_speed / 4;
 
 		in_update_pointer(0, -1, &i); // get mouse buttons, bit 2-0 = RML
 		pl_actions[0] |= map_pointer_buttons(i, currentConfig.input_dev0);
 		pl_actions[1] |= map_pointer_buttons(i, currentConfig.input_dev1);
+
+		// for XE-1AP, right stick (throttle)
+		in_update_pointer(0, 9, &i);
+		PicoIn.mouse[3] += (1<<currentConfig.mouse_wheel) * i;
+//		if (PicoIn.pad[0] & 1) PicoIn.mouse[3]-=4;
+//		if (PicoIn.pad[0] & 2) PicoIn.mouse[3]+=4;
+//		if (PicoIn.pad[0] & 4) PicoIn.mouse[3]-=4;
+//		if (PicoIn.pad[0] & 8) PicoIn.mouse[3]+=4;
+		PicoIn.mouse[3] = PicoIn.mouse[3] < -0x7f ? -0x7f :
+				PicoIn.mouse[3] > 0x7f ? 0x7f : PicoIn.mouse[3];
+		PicoIn.pad[0] &= ~0x0f; // release UDLR
 	}
 
 	if (kbd_mode) {
@@ -1437,18 +1457,18 @@ void emu_update_input(void)
 		// since fast-forward activates even with parameter set_on = 0.
 		events &= PEV_SWITCH_KBD;
 	} else {
-		PicoIn.pad[0] = pl_actions[0] & 0xfff;
-		PicoIn.pad[1] = pl_actions[1] & 0xfff;
-		PicoIn.pad[2] = pl_actions[2] & 0xfff;
-		PicoIn.pad[3] = pl_actions[3] & 0xfff;
+		PicoIn.pad[0] = pl_actions[0] & 0xffff;
+		PicoIn.pad[1] = pl_actions[1] & 0xffff;
+		PicoIn.pad[2] = pl_actions[2] & 0xffff;
+		PicoIn.pad[3] = pl_actions[3] & 0xffff;
 
-		if (pl_actions[0] & 0x7000)
+		if (pl_actions[0] & 0x70000)
 			do_turbo(&PicoIn.pad[0], pl_actions[0]);
-		if (pl_actions[1] & 0x7000)
+		if (pl_actions[1] & 0x70000)
 			do_turbo(&PicoIn.pad[1], pl_actions[1]);
-		if (pl_actions[2] & 0x7000)
+		if (pl_actions[2] & 0x70000)
 			do_turbo(&PicoIn.pad[2], pl_actions[2]);
-		if (pl_actions[3] & 0x7000)
+		if (pl_actions[3] & 0x70000)
 			do_turbo(&PicoIn.pad[3], pl_actions[3]);
 
 		if ((events ^ prev_events) & PEV_FF) {
@@ -1625,7 +1645,7 @@ void emu_sound_wait(void)
 
 static void emu_loop_prep(void)
 {
-	static int pointer[] = { PICO_INPUT_MOUSE, PICO_INPUT_LIGHT_GUN, PICO_INPUT_JUSTIFIER };
+	static int pointer[] = { PICO_INPUT_XE_1AP, PICO_INPUT_MOUSE, PICO_INPUT_LIGHT_GUN, PICO_INPUT_JUSTIFIER };
 	static int pal_old = -1;
 	static int filter_old = -1;
 	int i;
