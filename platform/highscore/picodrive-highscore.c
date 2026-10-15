@@ -372,21 +372,10 @@ picodrive_core_run_frame (HsCore *core)
 
   hs_software_context_release_framebuffer (self->context);
 
-  HsPlatform platform = hs_core_get_platform (core);
-
-  if (platform == HS_PLATFORM_MEGA_DRIVE_32X ||
-      platform == HS_PLATFORM_MEGA_CD_32X) {
-    if (Pico.m.pal)
-      hs_software_context_set_colorburst (self->context, self->col_count * 3.0 / 640.0, 0.0, self->colorburst_phase);
-    else
-      hs_software_context_set_colorburst (self->context, self->col_count * 3.0 / 512.0, 0.0, 0.0);
-
-  } else {
-    if (Pico.m.pal)
-      hs_software_context_set_colorburst (self->context, self->col_count * 3.0 / 640.0, 0.0, self->colorburst_phase);
-    else
-      hs_software_context_set_colorburst (self->context, self->col_count * 3.0 / 512.0, 0.0, 0.5);
-  }
+  if (Pico.m.pal)
+    hs_software_context_set_colorburst (self->context, self->col_count * 3.0 / 640.0, 0.0, self->colorburst_phase);
+  else
+    hs_software_context_set_colorburst (self->context, self->col_count * 3.0 / 512.0, 0.0, 0.0);
 
   self->colorburst_phase = fmod (self->colorburst_phase + 1.0, 2.0);
 
