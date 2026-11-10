@@ -1616,46 +1616,39 @@ static u32 ym2612_read_local_68k(u32 a)
     return 0;
 }
 
-// legacy code, only used for GP2X
-void ym2612_pack_state_old(void)
+// timers are saved as tick counts, in 16.16 int format.
+// busy/decay go through the exactly-invertible cycles_* macros; the tick
+// encode/decode below must round the same way for the round trip to be lossless.
+void ym2612_pack_timer_vals(int *tat_, int *tbt_, int *busy_)
 {
-  // timers are saved as tick counts, in 16.16 int format
-  int tat = 0, tbt = 0, busy = 0;
-  u8 buf[16];
-  size_t b = 0;
+  int tac, tat = 0, tbc, tbt = 0, busy = 0;
 
-  ym2612_pack_timers(buf, sizeof(buf));
-  load_u16(buf, &b), load_u16(buf, &b);
-  tat = load_u32(buf, &b);
-  tbt = load_u32(buf, &b);
-  busy = load_u32(buf, &b);
+  tac = 1024 - ym2612.OPN.ST.TA;
+  tbc = 256  - ym2612.OPN.ST.TB;
+  if (Pico.t.ym2612_busy > 0)
+    busy = cycles_z80_to_68k(Pico.t.ym2612_busy);
+  if (Pico.t.timer_a_next_oflow != TIMER_NO_OFLOW)
+    tat = DIV_ROUND((Pico.t.timer_a_step - Pico.t.timer_a_next_oflow) * ONEQ(16),
+                    TIMER_A_TICK_ZCYCLES);
+  if (Pico.t.timer_b_next_oflow != TIMER_NO_OFLOW)
+    tbt = DIV_ROUND((Pico.t.timer_b_step - Pico.t.timer_b_next_oflow) * ONEQ(16),
+                    TIMER_B_TICK_ZCYCLES);
+  elprintf(EL_YMTIMER, "save: timer a %i/%i", tat >> 16, tac);
+  elprintf(EL_YMTIMER, "save: timer b %i/%i", tbt >> 16, tbc);
 
-#ifdef __GP2X__
-  if (PicoIn.opt & POPT_EXT_FM)
-    YM2612PicoStateSave2_940(tat, tbt);
-  else
-#endif
-    YM2612PicoStateSave2(tat, tbt, busy);
+  *tat_ = tat;
+  *tbt_ = tbt;
+  *busy_ = busy;
 }
 
 int ym2612_pack_timers(void *buf, size_t size)
 {
-  // timers are saved as tick counts, in 16.16 int format
-  int tac, tat = 0, tbc, tbt = 0, busy = 0, decay = 0;
+  int tat = 0, tbt = 0, busy = 0, decay = 0;
   size_t b = 0;
 
-  tac = 1024 - ym2612.OPN.ST.TA;
-  tbc = 256  - ym2612.OPN.ST.TB;
+  ym2612_pack_timer_vals(&tat, &tbt, &busy);
   if (Pico.t.ym2612_decay > 0)
     decay = cycles_z80_to_68k(Pico.t.ym2612_decay);
-  if (Pico.t.ym2612_busy > 0)
-    busy = cycles_z80_to_68k(Pico.t.ym2612_busy);
-  if (Pico.t.timer_a_next_oflow != TIMER_NO_OFLOW)
-    tat = MULQ((Pico.t.timer_a_step - Pico.t.timer_a_next_oflow), INVQ32(TIMER_A_TICK_ZCYCLES), 16);
-  if (Pico.t.timer_b_next_oflow != TIMER_NO_OFLOW)
-    tbt = MULQ((Pico.t.timer_b_step - Pico.t.timer_b_next_oflow), INVQ32(TIMER_B_TICK_ZCYCLES), 16);
-  elprintf(EL_YMTIMER, "save: timer a %i/%i", tat >> 16, tac);
-  elprintf(EL_YMTIMER, "save: timer b %i/%i", tbt >> 16, tbc);
 
   assert(size >= 21);
   save_u16(buf, &b, ym2612.OPN.ST.TA);
@@ -1669,10 +1662,20 @@ int ym2612_pack_timers(void *buf, size_t size)
 }
 
 // legacy code, only used for GP2X
+void ym2612_pack_state_old(void)
+{
+  int tat, tbt, busy;
+
+  ym2612_pack_timer_vals(&tat, &tbt, &busy);
+  YM2612PicoStateSave2(tat, tbt, busy);
+}
+
 void ym2612_unpack_state_old(void)
 {
   int i, ret, tat, tbt, busy = 0;
   YM2612PicoStateLoad();
+  /* Replay at time zero: a stale base makes the FM delta frame-sized and
+   * walks Pico.snd.fm_pos past PsndBuffer. */
   Pico.t.m68c_frame_start = SekCyclesDone();
 
   // feed all the registers and update internal state
@@ -1737,11 +1740,11 @@ void ym2612_unpack_timers(const void *buf, size_t size)
   Pico.t.timer_a_step = TIMER_A_TICK_ZCYCLES * (1024 - ym2612.OPN.ST.TA);
   Pico.t.timer_b_step = TIMER_B_TICK_ZCYCLES * (256  - ym2612.OPN.ST.TB);
   if (ym2612.OPN.ST.mode & 1)
-    Pico.t.timer_a_next_oflow = (1LL * (tac-tat) * TIMER_A_TICK_ZCYCLES)>>16;
+    Pico.t.timer_a_next_oflow = SHR_ROUND(1LL * (tac - tat) * TIMER_A_TICK_ZCYCLES, 16);
   else
     Pico.t.timer_a_next_oflow = TIMER_NO_OFLOW;
   if (ym2612.OPN.ST.mode & 2)
-    Pico.t.timer_b_next_oflow = (1LL * (tbc-tbt) * TIMER_B_TICK_ZCYCLES)>>16;
+    Pico.t.timer_b_next_oflow = SHR_ROUND(1LL * (tbc - tbt) * TIMER_B_TICK_ZCYCLES, 16);
   else
     Pico.t.timer_b_next_oflow = TIMER_NO_OFLOW;
   elprintf(EL_YMTIMER, "load: %i/%i, timer_a_next_oflow %i", tat>>16, tac>>16, Pico.t.timer_a_next_oflow >> 8);

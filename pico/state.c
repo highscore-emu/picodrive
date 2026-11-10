@@ -260,7 +260,10 @@ static int state_save(void *file)
     } else {
 #ifdef __GP2X__
       void *ym_regs = YM2612GetRegs();
-      ym2612_pack_state_old();
+      if (PicoIn.opt & POPT_EXT_FM)
+        ym2612_pack_state_940();
+      else
+        ym2612_pack_state_old();
       CHECKED_WRITE(CHUNK_FM, 0x200+4, ym_regs);
 #else
       // write fm state first since timer load needs OPN.ST.mode
@@ -493,8 +496,10 @@ static int state_load(void *file)
       case CHUNK_PSG:     CHECKED_READ2(28*4, sn76496_regs); break;
       case CHUNK_YM2413:
         CHECKED_READ(len, buf);
-        ym2413_unpack_state(buf, len);
-        Pico.m.hardware |= PMS_HW_FMUSED;
+        if (len >= YM2413_STATE_MIN) {
+          ym2413_unpack_state(buf, len);
+          Pico.m.hardware |= PMS_HW_FMUSED;
+        }
         break;
       case CHUNK_FM:
         ym_regs = YM2612GetRegs();

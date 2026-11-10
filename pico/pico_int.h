@@ -209,9 +209,11 @@ extern struct DrZ80 drZ80;
 #define z80_cyclesDone() \
   (Pico.t.z80c_aim - z80_cyclesLeft)
 
-// 68k clock = OSC/7, z80 clock = OSC/15, 68k:z80 ratio = 7/15 = 3822.9/8192
-#define cycles_68k_to_z80(x) ((x) * 3823 >> 13)
-#define cycles_z80_to_68k(x) ((x) * 8777 >> 12)
+// 68k clock = OSC/7, z80 clock = OSC/15, so 68k:z80 = 15:7.
+// 32-bit mantissa fixed point, rounded to nearest:
+// the pair is exactly invertible for the (per-frame) counts used here.
+#define cycles_68k_to_z80(x) SHR_ROUND((x) * ((7LL<<32)/15), 32)
+#define cycles_z80_to_68k(x) SHR_ROUND((x) * ((15LL<<32)/7), 32)
 
 // ----------------------- SH2 CPU -----------------------
 
@@ -923,6 +925,7 @@ void cdda_stop_play(void);
 #define YM2612_NATIVE_RATE() (((Pico.m.pal?OSC_PAL:OSC_NTSC)/7 + 3*24) / (6*24))
 
 void ym2612_sync_timers(int z80_cycles, int mode_old, int mode_new);
+void ym2612_pack_timer_vals(int *tat, int *tbt, int *busy);
 int  ym2612_pack_timers(void *buf_, size_t size);
 void ym2612_unpack_timers(const void *buf_, size_t size);
 void ym2612_pack_state_old(void);

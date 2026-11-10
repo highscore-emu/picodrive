@@ -4,7 +4,12 @@
 #include <stddef.h>
 #ifndef __HIGHSCORE__
 #include "emu2413/emu2413.h"
+#endif
 
+/* smallest valid packed state: u32 address + 0x40 registers */
+#define YM2413_STATE_MIN (4 + 0x40)
+
+#ifndef __HIGHSCORE__
 // the one instance that can be in a Mark III
 extern OPLL *opll;
 #endif
