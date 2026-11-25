@@ -232,7 +232,7 @@ static int state_save(void *file)
   void *buf2 = NULL;
   int ver = 0x0191; // not really used..
   int retval = -1;
-  int len;
+  int len, poll_stopped = 0;
 
   buf2 = malloc(CHUNK_LIMIT_W);
   if (buf2 == NULL)
@@ -247,6 +247,16 @@ static int state_save(void *file)
 
     memset(buff, 0, sizeof(buff));
     SekPackCpu(buff, 0);
+    // a 68k stopped by poll detection is resumed on load, so store it in that
+    // resumed form, or the next save of the loaded state would differ
+#ifndef NO_32X
+    poll_stopped = (Pico32x.emu_flags & (P32XF_68KCPOLL|P32XF_68KVPOLL)) != 0;
+#endif
+    if (poll_stopped)
+      buff[0x4d] = 0;
+    // not_pol is a detection hint the load path resets, so a save of the
+    // loaded state would otherwise differ from the original
+    buff[0x58] = 0;
     CHECKED_WRITE_BUFF(CHUNK_M68K,  buff);
     CHECKED_WRITE_BUFF(CHUNK_RAM,   PicoMem.ram);
     CHECKED_WRITE_BUFF(CHUNK_VSRAM, PicoMem.vsram);
@@ -296,7 +306,12 @@ static int state_save(void *file)
   CHECKED_WRITE_BUFF(CHUNK_VRAM,  PicoMem.vram);
   CHECKED_WRITE_BUFF(CHUNK_CRAM,  PicoMem.cram);
 
-  CHECKED_WRITE_BUFF(CHUNK_MISC,  Pico.m);
+  {
+    // dirtyPal is only a renderer hint, don't let it cause state mismatches
+    struct PicoMisc m = Pico.m;
+    m.dirtyPal = 0;
+    CHECKED_WRITE(CHUNK_MISC, sizeof(m), &m);
+  }
   len = PicoVideoSave(buf2);
   CHECKED_WRITE(CHUNK_VDP, len, buf2);
   CHECKED_WRITE_BUFF(CHUNK_VIDEO, Pico.video);
@@ -352,7 +367,14 @@ static int state_save(void *file)
     CHECKED_WRITE_BUFF(CHUNK_SSH2_DATA, sh2s[1].data_array);
     CHECKED_WRITE_BUFF(CHUNK_SSH2_PERI, sh2s[1].peri_regs);
 
-    CHECKED_WRITE_BUFF(CHUNK_32XSYS,    Pico32x);
+    {
+      // dirty_pal is only a renderer hint, don't let it cause state mismatches
+      struct Pico32x p32x = Pico32x;
+      p32x.dirty_pal = 0;
+      if (poll_stopped)
+        p32x.emu_flags &= ~(P32XF_68KCPOLL|P32XF_68KVPOLL);
+      CHECKED_WRITE(CHUNK_32XSYS, sizeof(p32x), &p32x);
+    }
     CHECKED_WRITE_BUFF(CHUNK_M68K_BIOS, Pico32xMem->m68k_rom);
     CHECKED_WRITE_BUFF(CHUNK_MSH2_BIOS, Pico32xMem->sh2_rom_m);
     CHECKED_WRITE_BUFF(CHUNK_SSH2_BIOS, Pico32xMem->sh2_rom_s);
@@ -448,6 +470,12 @@ static int state_load(void *file)
   if (strncmp(header, "PicoSMCD", 8) && strncmp(header, "PicoSEXT", 8))
     R_ERROR_RETURN("bad header");
   CHECKED_READ(4, &ver);
+
+  if (!(PicoIn.AHW & PAHW_SMS)) {
+    // the idle detector patches code in RAM; remove the patches before the
+    // saved RAM is loaded over them
+    SekFinishIdleDet();
+  }
 
   memset(pcd_event_times, 0, sizeof(pcd_event_times));
   memset(p32x_event_times, 0, sizeof(p32x_event_times));
@@ -650,6 +678,9 @@ readend:
     Pico.video.status &= ~(SR_VB | SR_F);
     Pico.video.status |= ((Pico.video.reg[1] >> 3) ^ SR_VB) & SR_VB;
     Pico.video.status |= (Pico.video.pending_ints << 2) & SR_F;
+    // resume the detector in the same phase a save leaves it in
+    if (!(PicoIn.opt & POPT_DIS_IDLE_DET))
+      SekInitIdleDet();
   }
 
   // kludge: if there is no new ports data save, they must be initialised

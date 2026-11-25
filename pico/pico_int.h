@@ -526,7 +526,10 @@ struct Pico
 };
 
 // MCD
-#define PCM_MIXBUF_LEN ((12500000 / 384) / 50 + 1)
+// PCM steps in one PAL frame: 313 lines * 488.5 m68k cycles, scaled to S68k
+// cycles and 384-cycle steps => 654.86, i.e. 655 steps, plus one for the
+// sub-step remainder carried into the next call => 656.
+#define PCM_MIXBUF_LEN ((int)(12500000ull * 313 * 489 / (OSC_PAL / 7) / 384) + 1)
 
 struct mcd_pcm
 {
@@ -1125,6 +1128,7 @@ void Pico32xSwapDRAM(int b);
 void Pico32xMemStateLoaded(void);
 void p32x_update_banks(void);
 void p32x_m68k_poll_event(u32 a, u32 flags);
+void p32x_clear_poll_state(void);
 u32 REGPARM(3) p32x_sh2_poll_memory8(u32 a, u32 d, SH2 *sh2);
 u32 REGPARM(3) p32x_sh2_poll_memory16(u32 a, u32 d, SH2 *sh2);
 u32 REGPARM(3) p32x_sh2_poll_memory32(u32 a, u32 d, SH2 *sh2);

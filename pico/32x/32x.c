@@ -398,15 +398,28 @@ static event_cb *p32x_event_cbs[P32X_EVENT_COUNT] = {
 // schedule event at some time 'after', in m68k clocks
 void p32x_event_schedule(unsigned int now, enum p32x_event event, int after)
 {
-  unsigned int when;
+  unsigned int when, prev;
+  int i;
 
   when = (now + after) | 1;
 
   elprintf(EL_32X, "32x: new event #%u %u->%u", event, now, when);
+  prev = p32x_event_times[event];
   p32x_event_times[event] = when;
 
-  if (event_time_next == 0 || CYCLES_GT(event_time_next, when))
-    event_time_next = when;
+  // event_time_next must name the earliest pending event; if this slot is
+  // the one it named, that time is gone and the next one must be derived
+  // again, else a stale time is kept in some cases (a pending event moved
+  // later, e.g. when a timer is reprogrammed)
+  if (event_time_next != 0 && event_time_next != prev &&
+      !CYCLES_GT(event_time_next, when))
+    return;
+
+  event_time_next = 0;
+  for (i = 0; i < P32X_EVENT_COUNT; i++)
+    if (p32x_event_times[i] && (!event_time_next ||
+        CYCLES_GT(event_time_next, p32x_event_times[i])))
+      event_time_next = p32x_event_times[i];
 }
 
 void p32x_event_schedule_sh2(SH2 *sh2, enum p32x_event event, int after)
@@ -651,6 +664,10 @@ void PicoFrame32x(void)
 {
   int offs = (240-rendlines)>>1;
 
+  // drop poll detection state at the frame boundary, so that a state saved
+  // here reloads and runs exactly like an uninterrupted run (netplay)
+  p32x_clear_poll_state();
+
   if (PicoIn.AHW & PAHW_MCD)
     pcd_prepare_frame();
 
@@ -699,10 +716,9 @@ void Pico32xStateLoaded(int is_early)
   p32x_pwm_state_loaded();
   p32x_run_events(Pico.t.m68c_aim);
 
-  // TODO wakeup CPUs for now. poll detection stuff must go to the save state!
-  p32x_m68k_poll_event(0, -1);
-  p32x_sh2_poll_event(msh2.poll_addr, &msh2, SH2_IDLE_STATES, msh2.m68krcycles_done);
-  p32x_sh2_poll_event(ssh2.poll_addr, &ssh2, SH2_IDLE_STATES, ssh2.m68krcycles_done);
+  // the SH2s may have been saved while polling, restart them from a known
+  // state, same as is done at every frame start
+  p32x_clear_poll_state();
 }
 
 void Pico32xPrepare(void)

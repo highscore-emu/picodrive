@@ -554,7 +554,9 @@ static INLINE void set_timers( int v )
 static INLINE void recalc_volout(FM_SLOT *SLOT)
 {
 	INT16 vol_out = SLOT->volume;
-	if ((SLOT->ssg&0x0c) == 0x0c)
+	/* must match update_eg_phase() */
+	if ((SLOT->ssg&0x0c) == 0x0c && SLOT->state > EG_REL &&
+	    (ym2612.OPN.ST.flags & 1))
 		vol_out = (0x200 - vol_out) & MAX_ATT_INDEX;
 	SLOT->vol_out = vol_out + SLOT->tl;
 }
@@ -593,6 +595,8 @@ static INLINE void FM_KEYOFF(int c , int s )
 				if (SLOT->volume >= 0x200) {
 					SLOT->volume = MAX_ATT_INDEX;
 					SLOT->state  = EG_OFF;
+					/* keep the slot mask in sync */
+					ym2612.slot_mask &= ~(1 << (s + c*4));
 				}
 			}
 		}
@@ -613,8 +617,7 @@ static INLINE void set_det_mul(FM_CH *CH, FM_SLOT *SLOT, int v)
 static INLINE void set_tl(FM_SLOT *SLOT, int v)
 {
 	SLOT->tl = (v&0x7f)<<(ENV_BITS-7); /* 7bit TL */
-	if (SLOT->state > EG_REL)
-		recalc_volout(SLOT);
+	recalc_volout(SLOT);
 }
 
 /* set attack rate & key scale  */
@@ -1233,6 +1236,13 @@ static void chan_render_prep(void)
 	crct.eg_timer_add = ym2612.OPN.eg_timer_add;
 	crct.lfo_init_sft16 = ym2612.OPN.lfo_ampm << 16;
 	crct.lfo_inc = ym2612.OPN.lfo_inc;
+	/* chan_render_finish() and the lfo_ampm store in YM2612UpdateOne_() use
+	   these unconditionally, while chan_render() seeds them only for the
+	   channels it renders, so an idle chip would copy stale values over the
+	   ones just restored from a state. Seed them from the chip here. */
+	crct.eg_cnt = ym2612.OPN.eg_cnt;
+	crct.eg_timer = ym2612.OPN.eg_timer;
+	crct.pack = (crct.pack & 0xffff) | ((UINT32)ym2612.OPN.lfo_ampm << 16);
 }
 
 static void chan_render_finish(s32 *buffer, int length, int active_chans)
@@ -1349,8 +1359,15 @@ static int chan_render(s32 *buffer, int length, int c, UINT32 flags) // flags: s
 		crct.CH->SLOT[SLOT3].phase = crct.phase3;
 		crct.CH->SLOT[SLOT4].phase = crct.phase4;
 	}
-	else
-		ym2612.slot_mask &= ~(0xf << (c*4));
+	/* slots can reach EG_OFF in here, so refresh the slot mask */
+	{
+		UINT32 m = 0;
+		if (crct.CH->SLOT[SLOT1].state) m |= 1 << SLOT1;
+		if (crct.CH->SLOT[SLOT2].state) m |= 1 << SLOT2;
+		if (crct.CH->SLOT[SLOT3].state) m |= 1 << SLOT3;
+		if (crct.CH->SLOT[SLOT4].state) m |= 1 << SLOT4;
+		ym2612.slot_mask = (ym2612.slot_mask & ~(0xf << (c*4))) | (m << (c*4));
+	}
 	crct.CH->upd_cnt = (crct.algo >> 4) & 0x7;
 
 	return (crct.algo & 8) >> 3; // had output
@@ -1429,6 +1446,22 @@ static INLINE void refresh_fc_eg_chan_sl3(FM_CH *CH2, const FM_3SLOT *SL3, UINT3
 		refresh_incr_eg_slot(&CH2->SLOT[SLOT3], freqbase, SL3->block_fnum[0] & 0x7ff, SL3->kcode[0]);
 		refresh_incr_eg_slot(&CH2->SLOT[SLOT4], freqbase, CH2->block_fnum & 0x7ff, CH2->kcode);
 	}
+}
+
+static void refresh_all_channels(void)
+{
+	UINT32 freqbase = ym2612.OPN.ST.freqbase_ui;
+
+	refresh_fc_eg_chan(&ym2612.CH[0], freqbase);
+	refresh_fc_eg_chan(&ym2612.CH[1], freqbase);
+	if (ym2612.OPN.ST.mode & 0xc0)
+		/* 3SLOT MODE */
+		refresh_fc_eg_chan_sl3(&ym2612.CH[2], &ym2612.OPN.SL3, freqbase);
+	else
+		refresh_fc_eg_chan(&ym2612.CH[2], freqbase);
+	refresh_fc_eg_chan(&ym2612.CH[3], freqbase);
+	refresh_fc_eg_chan(&ym2612.CH[4], freqbase);
+	refresh_fc_eg_chan(&ym2612.CH[5], freqbase);
 }
 
 static void reset_channels(FM_CH *CH)
@@ -1742,7 +1775,6 @@ static int OPNWriteReg(int r, int v)
 /* Generate samples for YM2612 */
 int YM2612UpdateOne_(s32 *buffer, int length, int stereo, int is_buf_empty)
 {
-	UINT32 freqbase = ym2612.OPN.ST.freqbase_ui;
 	int pan;
 	int active_chs = 0;
 	int flags = stereo ? 1:0;
@@ -1769,16 +1801,7 @@ int YM2612UpdateOne_(s32 *buffer, int length, int stereo, int is_buf_empty)
 	}
 */
 	/* refresh PG and EG */
-	refresh_fc_eg_chan(&ym2612.CH[0], freqbase);
-	refresh_fc_eg_chan(&ym2612.CH[1], freqbase);
-	if( (ym2612.OPN.ST.mode & 0xc0) )
-		/* 3SLOT MODE */
-		refresh_fc_eg_chan_sl3(&ym2612.CH[2], &ym2612.OPN.SL3, freqbase);
-	else
-		refresh_fc_eg_chan(&ym2612.CH[2], freqbase);
-	refresh_fc_eg_chan(&ym2612.CH[3], freqbase);
-	refresh_fc_eg_chan(&ym2612.CH[4], freqbase);
-	refresh_fc_eg_chan(&ym2612.CH[5], freqbase);
+	refresh_all_channels();
 
 	pan = ym2612.OPN.pan;
 
@@ -2441,6 +2464,8 @@ void YM2612PicoStateLoad3(const void *buf_, size_t size)
 				if (ym2612.CH[c].SLOT[s].state != EG_OFF)
 					ym2612.slot_mask |= 1 << (s + c*4);
 	}
+	// refresh now, a register write may precede the next update
+	refresh_all_channels();
 	//printf("ym2612 state size: %zu\n", b);
 	return;
 broken:
