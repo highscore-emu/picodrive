@@ -10,6 +10,7 @@ cc = meson.get_compiler('c')
 picodrive_source = [
   'picodrive-highscore.c',
   'mmap.c',
+  'plat.c',
 
   '../common/mp3.c',
   '../common/mp3_dummy.c',
@@ -94,6 +95,7 @@ picodrive_c_args = [
   '-D_USE_CZ80',
   '-DUSE_LIBCHDR',
   '-DDRC_SH2',
+  '-DMAP_JIT',
   '-DNDEBUG',
   '-D__LIBRETRO__',
   '-D__HIGHSCORE__',

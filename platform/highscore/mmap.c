@@ -64,13 +64,6 @@ plat_mremap (void *ptr, size_t oldsize, size_t newsize)
   return ret;
 }
 
-// if NULL is returned, static buffer is used
-void *
-plat_mem_get_for_drc (size_t size)
-{
-  return NULL;
-}
-
 int
 plat_mem_set_exec (void *ptr, size_t size)
 {
