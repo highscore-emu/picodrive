@@ -10,6 +10,7 @@ SourceCode=https://github.com/highscore-emu/picodrive
 Issues=https://github.com/highscore-emu/picodrive/issues
 LicensePath=COPYING
 Platforms=MegaDrive32X;MegaCD32X;
+StateVersion=1
 
 [Firmware:MegaCD]
 europe=required
